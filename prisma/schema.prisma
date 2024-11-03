@@ -1,0 +1,99 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id                    String                  @id @default(cuid())
+  name                  String?
+  email                 String?                 @unique
+  image                 String?
+  password              String?
+  role                  UserRole                @default(USER)
+  accounts              Account[]
+  ReceivingOrganization ReceivingOrganization[]
+  Donated               Donated[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model ReceivingOrganization {
+  id                       String   @id @default(cuid())
+  primaryPartner           String
+  secondaryPartner         String?
+  receivingOrgName         String
+  receivingOrgIdNumber     String   @unique
+  typeOfOrganization       String
+  receivingOrgAddress      String
+  receivingOrgContactName  String
+  receivingOrgContactEmail String   @unique
+  receivingOrgPhoneNumber  String
+  lng                      Float?
+  lat                      Float?
+  userId                   String   @map("user_id")
+  createdAt                DateTime @default(now())
+  Donated                  Donated[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("receiving_organizations")
+}
+
+model Donated {
+  id           String   @id @default(cuid())
+  assetNumber  String 
+  donatedItem  String
+  userId       String   @map("user_id")
+  orgId        String   @map("org_id")
+  createdAt                DateTime @default(now())
+
+  receivingorganization ReceivingOrganization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("donated")
+}
+
+model PasswordResetToken {
+  id String @id @default(cuid())
+  email String 
+  token String @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
